@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Title</title>
+
+  <!-- CodeMirror -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0d;
+      color: #d0d0d0;
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+      line-height: 1.75;
+      padding: 3rem 1rem;
+    }
+
+    article {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    a#back {
+      display: inline-block;
+      margin-bottom: 2rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #888;
+      text-decoration: none;
+    }
+    a#back:hover { color: #ccc; }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: normal;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 2.5rem;
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+      color: #aaa;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: normal;
+      color: #ddd;
+      margin: 2.5rem 0 1rem;
+    }
+
+    /* ---- Shader Block ---- */
+    .shader-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0;
+      border: 1px solid #222;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 2rem 0;
+    }
+
+    .shader-canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #000;
+    }
+
+    /* CodeMirror overrides */
+    .shader-block .CodeMirror {
+      height: 100%;
+      font-size: 0.82rem;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      border-left: 1px solid #222;
+    }
+
+    .shader-block .CodeMirror-scroll {
+      min-height: 100%;
+    }
+
+    .shader-error {
+      grid-column: 1 / -1;
+      background: #1a0000;
+      color: #ff6b6b;
+      font-family: monospace;
+      font-size: 0.78rem;
+      padding: 0.6rem 1rem;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .shader-error.visible { display: block; }
+
+    @media (max-width: 620px) {
+      .shader-block {
+        grid-template-columns: 1fr;
+      }
+      .shader-block .CodeMirror {
+        border-left: none;
+        border-top: 1px solid #222;
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+<article>
+  <a id="back" href="../../home.html">← back</a>
+
+  <h1>Project Title</h1>
+  <p class="subtitle">Three.js · GLSL · WebGL</p>
+
+  <p>
+    Write your intro here. Explain what this project is about, what
+    concept you're exploring, or what inspired it.
+  </p>
+
+  <h2>Section One</h2>
+
+  <p>
+    Some text before the first shader. Describe what the reader is
+    about to see, or explain the math/idea behind it.
+  </p>
+
+  <!-- =============================================
+       SHADER BLOCK — copy this whole block to add more.
+       Edit the GLSL inside the <script> tag.
+       Available uniforms:  u_time (float), u_resolution (vec2)
+       ============================================= -->
+  <div class="shader-block">
+    <canvas class="shader-canvas"></canvas>
+    <div class="shader-editor"></div>
+    <div class="shader-error"></div>
+    <script type="x-shader/x-fragment">
+precision mediump float;
+
+uniform float u_time;
+uniform vec2  u_resolution;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution;
+
+    vec3 col = 0.5 + 0.5 * cos(u_time + uv.xyx + vec3(0.0, 2.0, 4.0));
+
+    gl_FragColor = vec4(col, 1.0);
+}
+    </script>
+  </div>
+
+  <p>
+    Text after the first shader. You could explain what to try changing
+    in the code, or introduce the next concept.
+  </p>
+
+  <h2>Section Two</h2>
+
+  <p>Introduce the second shader here.</p>
+
+  <!-- Second shader block — loaded from an external .glsl file.
+       Drop a .glsl file next to this HTML and point data-src at it.
+       No <script> tag needed when using data-src. -->
+  <div class="shader-block" data-src="shader2.glsl">
+    <canvas class="shader-canvas"></canvas>
+    <div class="shader-editor"></div>
+    <div class="shader-error"></div>
+    <script type="x-shader/x-fragment">
+precision mediump float;
+
+uniform float u_time;
+uniform vec2  u_resolution;
+
+float circle(vec2 uv, vec2 center, float radius) {
+    return smoothstep(radius, radius - 0.01, length(uv - center));
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution;
+    uv = uv * 2.0 - 1.0;
+    uv.x *= u_resolution.x / u_resolution.y;
+
+    float r = 0.4 + 0.1 * sin(u_time);
+    float c = circle(uv, vec2(0.0), r);
+
+    vec3 col = mix(vec3(0.05), vec3(0.2, 0.5, 1.0), c);
+    gl_FragColor = vec4(col, 1.0);
+}
+    </script>
+  </div>
+
+  <p>Closing thoughts, what you learned, what you'd try next, etc.</p>
+
+</article>
+
+<script type="module">
+// ─── Raw WebGL + CodeMirror setup ────────────────────────────────────────────
+//
+// This template uses raw WebGL — no Three.js. You manually manage the GPU:
+// uploading geometry, compiling shaders, linking programs, setting uniforms.
+// It matches the conventions of Shadertoy and The Book of Shaders.
+// In your fragment shaders, use gl_FragCoord.xy / u_resolution for UVs.
+
+// ── Vertex shader ──
+// This just passes each vertex position straight through to clip space.
+// You never need to touch this — its only job is to place the fullscreen quad.
+const VERT_SRC = `
+  attribute vec2 a_pos;
+  void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+`;
+
+// Six (x,y) positions forming two triangles that tile into a fullscreen quad.
+// Coordinates are in clip space: (-1,-1) is bottom-left, (1,1) is top-right.
+const QUAD = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
+
+async function initBlock(blockEl) {
+  const canvas   = blockEl.querySelector('.shader-canvas');
+  const editorEl = blockEl.querySelector('.shader-editor');
+  const errorEl  = blockEl.querySelector('.shader-error');
+
+  // Two ways to provide shader source:
+  //   1. data-src="path/to/shader.glsl"  → fetches the file (requires Live Server)
+  //   2. <script type="x-shader/x-fragment"> inline GLSL </script>  → reads inline
+  let initialSrc;
+  const filePath = blockEl.dataset.src;
+  if (filePath) {
+    try {
+      initialSrc = await fetch(filePath).then(r => {
+        if (!r.ok) throw new Error(`Could not load ${filePath}: ${r.status}`);
+        return r.text();
+      });
+    } catch (err) {
+      errorEl.textContent = err;
+      errorEl.classList.add('visible');
+      return;
+    }
+  } else {
+    const srcEl = blockEl.querySelector('script[type="x-shader/x-fragment"]');
+    initialSrc = srcEl ? srcEl.textContent.trim() : 'void main(){ gl_FragColor = vec4(1.0); }';
+  }
+
+  // ── WebGL setup ──
+  // Get the raw WebGL context from the canvas element
+  const gl = canvas.getContext('webgl');
+  if (!gl) { errorEl.textContent = 'WebGL not supported'; errorEl.classList.add('visible'); return; }
+
+  // Upload the quad vertices to the GPU once — they never change
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, QUAD, gl.STATIC_DRAW);
+
+  // Compiles a single shader (either VERTEX_SHADER or FRAGMENT_SHADER).
+  // Throws the error log string if compilation fails.
+  function compileShader(src, type) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      const err = gl.getShaderInfoLog(s);
+      gl.deleteShader(s);
+      throw err;
+    }
+    return s;
+  }
+
+  let program = null;
+  let uTime, uRes; // handles to the uniforms — needed to update them each frame
+
+  // Compiles + links a new shader program from the current editor source.
+  // Called once on load and again every time the user edits the shader.
+  function buildProgram(fragSrc) {
+    try {
+      const vert = compileShader(VERT_SRC, gl.VERTEX_SHADER);
+      const frag = compileShader(fragSrc, gl.FRAGMENT_SHADER);
+
+      // A "program" is a compiled vertex + fragment shader pair linked together
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vert);
+      gl.attachShader(prog, frag);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw gl.getProgramInfoLog(prog);
+
+      if (program) gl.deleteProgram(program); // free the old program from GPU memory
+      program = prog;
+      gl.useProgram(program);
+
+      // Tell WebGL how to feed the QUAD buffer into the a_pos attribute
+      const posLoc = gl.getAttribLocation(program, 'a_pos');
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0); // 2 floats per vertex
+
+      // Look up uniform locations so we can set them each frame in render()
+      uTime = gl.getUniformLocation(program, 'u_time');
+      uRes  = gl.getUniformLocation(program, 'u_resolution');
+
+      errorEl.textContent = '';
+      errorEl.classList.remove('visible');
+    } catch (err) {
+      errorEl.textContent = err;
+      errorEl.classList.add('visible');
+    }
+  }
+
+  const startTime = performance.now();
+
+  // Syncs the canvas's pixel dimensions to its CSS display size.
+  // Without this, the canvas would render at the wrong resolution after resize.
+  function resize() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+    gl.viewport(0, 0, w, h); // tell WebGL the drawable area matches the canvas size
+  }
+
+  // The animation loop — runs every frame via requestAnimationFrame
+  function render() {
+    requestAnimationFrame(render);
+    if (!program) return;
+    resize();
+    gl.useProgram(program);
+    gl.uniform1f(uTime, (performance.now() - startTime) / 1000); // seconds since load
+    gl.uniform2f(uRes, canvas.width, canvas.height);             // canvas size in pixels
+    gl.drawArrays(gl.TRIANGLES, 0, 6); // draw the 6 vertices = 2 triangles = fullscreen quad
+  }
+
+  buildProgram(initialSrc);
+  render();
+
+  // ── CodeMirror setup ──
+  // Creates the syntax-highlighted editor inside the .shader-editor div
+  const editor = CodeMirror(editorEl, {
+    value: initialSrc,
+    mode: 'text/x-glsl', // GLSL syntax highlighting (via the clike mode)
+    theme: 'dracula',
+    lineNumbers: true,
+    tabSize: 4,
+    indentWithTabs: false,
+    lineWrapping: false,
+    autofocus: false,
+  });
+
+  // Recompile 600ms after the user stops typing (debounce avoids recompiling on every keystroke)
+  let debounce;
+  editor.on('change', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => buildProgram(editor.getValue()), 600);
+  });
+}
+
+// Run initBlock() on every .shader-block div found on the page
+document.querySelectorAll('.shader-block').forEach(initBlock);
+</script>
+</body>
+</html>

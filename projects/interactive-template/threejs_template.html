@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Title</title>
+
+  <!-- CodeMirror -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0d;
+      color: #d0d0d0;
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+      line-height: 1.75;
+      padding: 3rem 1rem;
+    }
+
+    article {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    a#back {
+      display: inline-block;
+      margin-bottom: 2rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #888;
+      text-decoration: none;
+    }
+    a#back:hover { color: #ccc; }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: normal;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 2.5rem;
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+      color: #aaa;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: normal;
+      color: #ddd;
+      margin: 2.5rem 0 1rem;
+    }
+
+    /* ---- Shader Block ---- */
+    .shader-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0;
+      border: 1px solid #222;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 2rem 0;
+    }
+
+    .shader-canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #000;
+    }
+
+    .shader-block .CodeMirror {
+      height: 100%;
+      font-size: 0.82rem;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      border-left: 1px solid #222;
+    }
+
+    .shader-block .CodeMirror-scroll {
+      min-height: 100%;
+    }
+
+    .shader-error {
+      grid-column: 1 / -1;
+      background: #1a0000;
+      color: #ff6b6b;
+      font-family: monospace;
+      font-size: 0.78rem;
+      padding: 0.6rem 1rem;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .shader-error.visible { display: block; }
+
+    @media (max-width: 620px) {
+      .shader-block { grid-template-columns: 1fr; }
+      .shader-block .CodeMirror {
+        border-left: none;
+        border-top: 1px solid #222;
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+<article>
+  <a id="back" href="../../home.html">← back</a>
+
+  <h1>Project Title</h1>
+  <p class="subtitle">Three.js · GLSL</p>
+
+  <p>Intro text here.</p>
+
+  <h2>Section One</h2>
+
+  <p>Describe what's happening in this shader.</p>
+
+  <!-- =============================================
+       SHADER BLOCK — copy to add more.
+       Edit the fragment GLSL inside the <script> tag.
+
+       Available in every fragment shader:
+         varying vec2 vUv;          (0..1 across the plane)
+         uniform float u_time;
+         uniform vec2  u_resolution;
+
+       To add more uniforms: define them in the uniforms
+       object inside initBlock() and reference them here.
+       ============================================= -->
+  <div class="shader-block">
+    <canvas class="shader-canvas"></canvas>
+    <div class="shader-editor"></div>
+    <div class="shader-error"></div>
+    <script type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec2 vUv;
+uniform float u_time;
+uniform vec2  u_resolution;
+
+void main() {
+    vec3 col = 0.5 + 0.5 * cos(u_time + vUv.xyx + vec3(0.0, 2.0, 4.0));
+    gl_FragColor = vec4(col, 1.0);
+}
+    </script>
+  </div>
+
+  <p>Some follow-up text. What should the reader try changing?</p>
+
+  <h2>Section Two</h2>
+
+  <p>Introduce the next idea.</p>
+
+  <!-- Second shader block -->
+  <div class="shader-block">
+    <canvas class="shader-canvas"></canvas>
+    <div class="shader-editor"></div>
+    <div class="shader-error"></div>
+    <script type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec2 vUv;
+uniform float u_time;
+uniform vec2  u_resolution;
+
+void main() {
+    vec2 uv = vUv * 2.0 - 1.0;
+    uv.x *= u_resolution.x / u_resolution.y;
+
+    float r = length(uv);
+    float a = atan(uv.y, uv.x);
+
+    float f = 0.5 + 0.5 * sin(a * 6.0 + u_time * 2.0);
+    float shape = smoothstep(f, f - 0.02, r);
+
+    vec3 col = mix(vec3(0.05), vec3(0.4, 0.2, 1.0), shape);
+    gl_FragColor = vec4(col, 1.0);
+}
+    </script>
+  </div>
+
+  <p>Closing thoughts.</p>
+
+</article>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+// ─── Three.js + CodeMirror setup ─────────────────────────────────────────────
+//
+// This template uses Three.js to handle WebGL boilerplate.
+// Three.js manages shader compilation, GPU buffers, and the render loop for you.
+// In your fragment shaders, use the `vUv` varying for UV coordinates (0..1).
+
+import * as three from 'three';
+import { OrbitControls } from '/node_modules/three/examples/jsm/controls/OrbitControls.js';
+
+// ── Vertex shader ──
+// Runs once per vertex. Its only job here is to forward the built-in `uv`
+// attribute (provided by Three.js PlaneGeometry) into `vUv`, which the
+// fragment shader then reads as a varying.
+// projectionMatrix / modelViewMatrix are auto-injected by Three.js.
+const VERT_SRC = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+function initBlock(blockEl) {
+  const canvas   = blockEl.querySelector('.shader-canvas');
+  const editorEl = blockEl.querySelector('.shader-editor');
+  const errorEl  = blockEl.querySelector('.shader-error');
+  const srcEl    = blockEl.querySelector('script[type="x-shader/x-fragment"]');
+  // Read the GLSL from the <script type="x-shader/x-fragment"> tag in the HTML
+  const initialSrc = srcEl ? srcEl.textContent.trim() : 'void main(){ gl_FragColor = vec4(1.0); }';
+
+  // ── Three.js setup ──
+  const renderer = new three.WebGLRenderer({ canvas, antialias: true });
+  const scene    = new three.Scene();
+
+  // OrthographicCamera: no perspective distortion — the plane fills the view exactly.
+  // Arguments are (left, right, top, bottom, near, far) in world units.
+  // Since the plane is 1x1, these bounds of -0.5..0.5 make it pixel-fill the canvas.
+  const camera = new three.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0, 1);
+
+
+  // Uniforms are how you pass data from JavaScript into your GLSL shaders.
+  // Each entry is { value: ... } — Three.js reads the .value property each frame.
+  const uniforms = {
+    u_time:       { value: 0 },
+    u_resolution: { value: new three.Vector2() },
+  };
+
+
+  // ShaderMaterial: a Three.js material that uses your custom GLSL shaders.
+  // vertexShader runs per-vertex, fragmentShader runs per-pixel.
+  const material = new three.ShaderMaterial({
+    vertexShader:   VERT_SRC,
+    fragmentShader: initialSrc,
+    uniforms,
+  });
+
+
+  // A flat 1x1 plane — combined with the OrthographicCamera above, this
+  // acts as a fullscreen canvas for the fragment shader.
+  const mesh = new three.Mesh(new three.PlaneGeometry(1, 1), material);
+  scene.add(mesh);
+
+  
+  // Called by Three.js when a shader fails to compile (Three.js r150+).
+  // `fs` is the raw WebGL fragment shader object — we pull the error log from it.
+  renderer.debug.onShaderError = (_gl, _program, _vs, fs) => {
+    const gl  = renderer.getContext();
+    const log = gl.getShaderInfoLog(fs) || 'Unknown shader error';
+    errorEl.textContent = log;
+    errorEl.classList.add('visible');
+  };
+
+  // Syncs the renderer and u_resolution to the canvas's actual CSS display size
+  function resize() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (canvas.width !== w || canvas.height !== h) {
+      renderer.setSize(w, h, false); // false = don't override CSS size
+      uniforms.u_resolution.value.set(w, h);
+    }
+  }
+
+  const startTime = performance.now();
+
+  // The animation loop — runs every frame via requestAnimationFrame
+  function render() {
+    requestAnimationFrame(render);
+    resize();
+    uniforms.u_time.value = (performance.now() - startTime) / 1000; // seconds since load
+    renderer.render(scene, camera);
+  }
+  render();
+
+  // ── Recompile on edit ──
+  // Unlike raw WebGL, Three.js recompiles automatically on the next render()
+  // call when needsUpdate is true — no manual compile/link steps needed.
+  function applyShader(src) {
+    errorEl.textContent = '';
+    errorEl.classList.remove('visible');
+    material.fragmentShader = src;
+    material.needsUpdate = true; // signals Three.js to recompile before next render
+  }
+
+  // ── CodeMirror setup ──
+  // Creates the syntax-highlighted editor inside the .shader-editor div
+  const editor = CodeMirror(editorEl, {
+    value: initialSrc,
+    mode: 'text/x-glsl', // GLSL syntax highlighting (via the clike mode)
+    theme: 'dracula',
+    lineNumbers: true,
+    tabSize: 4,
+    indentWithTabs: false,
+    autofocus: false,
+  });
+
+  // Recompile 600ms after the user stops typing (debounce avoids recompiling on every keystroke)
+  let debounce;
+  editor.on('change', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => applyShader(editor.getValue()), 600);
+  });
+}
+
+// Run initBlock() on every .shader-block div found on the page
+document.querySelectorAll('.shader-block').forEach(initBlock);
+</script>
+</body>
+</html>
