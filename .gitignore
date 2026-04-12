@@ -1,0 +1,7 @@
+*.DS_Store
+node_modules/.DS_Store
+node_modules/three/.DS_Store
+node_modules/three/examples/.DS_Store
+node_modules/three/examples/fonts/.DS_Store
+node_modules/three/examples/jsm/.DS_Store
+node_modules/three/src/.DS_Store
