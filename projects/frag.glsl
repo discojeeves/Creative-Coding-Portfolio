@@ -105,12 +105,14 @@ mat2 degrot2D(float angle) {
 // ***** ***** ***** Scene Time ***** ***** *****\\
 
 
-float map(vec3 pos) {
-   //vec3 q = fract(pos) - 0.5;
+vec2 map(vec3 pos) {
+    float box = sdBox(pos, vec3(0.75));
+    float sphere = sdSphere(pos - vec3(2.0, 0.0, 0.0), 0.5);
 
-    float box = sdBox(pos, vec3(0.1));
-    float final = box;
-    return final;       
+    //HARD UNION
+    if (box < sphere) return vec2(box, 1.0); // object 1
+    else              return vec2(sphere, 2.0); // object 2
+
 }
 
 vec4 color_funct(float t) {
@@ -119,45 +121,60 @@ vec4 color_funct(float t) {
 
 }
 
-vec3 calc_normal(vec3 pos) {
-    float e = 0.0001;
-    return normalize(vec3(
-        map(pos + vec3(e, 0, 0)) - map(pos - vec3(e, 0, 0)),
-        map(pos + vec3(0, e, 0)) - map(pos - vec3(0, e, 0)),
-        map(pos + vec3(0, 0, e)) - map(pos - vec3(0, 0, e))
-    ));
+vec3 getColor(float matID) {
+    if (matID == 1.0) return vec3(1.0, 0.0, 0.0); // red 
+    if (matID == 2.0) return vec3(0.0, 0.0, 1.0); // blue 
+    
+    return vec3(0.0); // fallback to black
+
 }
+
+// vec3 calc_normal(vec3 pos) {
+//     float e = 0.0001;
+//     return normalize(vec3(
+//         map(pos + vec3(e, 0, 0)) - map(pos - vec3(e, 0, 0)),
+//         map(pos + vec3(0, e, 0)) - map(pos - vec3(0, e, 0)),
+//         map(pos + vec3(0, 0, e)) - map(pos - vec3(0, 0, e))
+//     ));
+// }
 
 
 
 // ***** ***** *****  Ray Time  ***** ***** *****\\
 
-float rayMarch(vec3 ray_origin, vec3 ray_dir) {
+vec2 rayMarch(vec3 ray_origin, vec3 ray_dir) {
     float t = 0.;
+    float matID = -1.0;
+
     for (int i = 0; i < u_maxSteps; ++i) {
         vec3 pos = ray_origin + (ray_dir * t);
-        float d = map(pos);
+        vec2 result = map(pos);
         
-        if (d < u_hitThresh || t > u_maxDist) break;                 
-
-        t += d;                                                     
+        if (result.x < u_hitThresh || t > u_maxDist) {
+            matID = result.y;
+            break;
+        }
+        t += result.x;
     }
-    return t;
+    return vec2(t, matID);
 }
 
 void main() {
-    vec2 uv = vUv.xy;
-            
+    vec2 uv = vUv.xy;       
     vec3 ray_origin = u_camPos;                                              // ray origin
     vec3 ray_dir = (u_camInvProjMat * vec4(uv*2. -1., 0, 1)).xyz;            // ray direction
     ray_dir = (u_camToWorldMat * vec4(ray_dir,0)).xyz;
     ray_dir = normalize(ray_dir);
     
-    float total_d = rayMarch(ray_origin, ray_dir); // t is total distance travelled
-    
-    if (total_d >= u_maxDist) {
-        gl_FragColor = vec4(u_clearColor, 1);
+    vec2 result = rayMarch(ray_origin, ray_dir); // t is total distance travelled
+    float total_dist = result.x;
+    float matID = result.y;
+
+
+    if (total_dist >= u_maxDist || matID <0.0) {
+        gl_FragColor = vec4(u_clearColor, 1.0);
     } else {
-        gl_FragColor = color_funct(total_d); 
+        vec3 col = getColor(matID);
+        gl_FragColor = vec4(col, 1.0);
     }
 }     
