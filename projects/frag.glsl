@@ -82,6 +82,19 @@ float smInt( float d1, float d2, float k ) {
     return mix( d2, d1, h ) + k*h*(1.0-h);
 }
 
+//------ JOINING WITH COLOR ------\\
+
+vec2 bsUnionMat(float obj1, float matID1, float obj2, float matID2) {
+    if (obj1 < obj2) return vec2(obj1, matID1);
+    else             return vec2(obj2, matID2);
+}
+
+vec2 smUnionMat(float obj1, float mat1, float obj2, float mat2, float k) {
+    float h = clamp ( 0.5 + 0.5*(obj2-obj1)/k, 0.0, 1.0);
+    float result = mix(obj2, obj1, h) - k*h*(1.0-h);
+    float matblend = mix(mat2, mat1, h);
+    return vec2(result , matblend);
+}
 
 //------ Rotating Operations ------\\
 
@@ -101,29 +114,29 @@ mat2 degrot2D(float angle) {
 }
 
 
-
 // ***** ***** ***** Scene Time ***** ***** *****\\
 
 
 vec2 map(vec3 pos) {
     float box = sdBox(pos, vec3(0.75));
-    float sphere = sdSphere(pos - vec3(2.0, 0.0, 0.0), 0.5);
+    vec3 spherePos = vec3( sin(u_time), cos(u_time), 0.0);
+    float sphere = sdSphere(pos - spherePos, 0.75);
 
-    //HARD UNION
-    if (box < sphere) return vec2(box, 1.0); // object 1
-    else              return vec2(sphere, 2.0); // object 2
+    return smUnionMat(box, 0.0, sphere, 2.0, 0.1);
 
-}
 
-vec4 color_funct(float t) {
-    vec3 col = vec3(t*0.01);
-    return vec4(col, 1);
 
 }
 
-vec3 getColor(float matID) {
-    if (matID == 1.0) return vec3(1.0, 0.0, 0.0); // red 
-    if (matID == 2.0) return vec3(0.0, 0.0, 1.0); // blue 
+vec3 getProceduralColor(float id) {
+    return 0.5 + 0.5 * cos(id * 1.0 + vec3(0.0, 0.0, 0.0));
+}
+
+
+
+vec3 getSpecifiedColor(float mat) {
+    if (mat == 1.0) return vec3(1.0, 0.0, 0.0); // red 
+    if (mat == 2.0) return vec3(0.0, 0.0, 1.0); // blue 
     
     return vec3(0.0); // fallback to black
 
@@ -144,19 +157,19 @@ vec3 getColor(float matID) {
 
 vec2 rayMarch(vec3 ray_origin, vec3 ray_dir) {
     float t = 0.;
-    float matID = -1.0;
+    float mat = -1.0;
 
     for (int i = 0; i < u_maxSteps; ++i) {
         vec3 pos = ray_origin + (ray_dir * t);
         vec2 result = map(pos);
         
         if (result.x < u_hitThresh || t > u_maxDist) {
-            matID = result.y;
+            mat = result.y;
             break;
         }
         t += result.x;
     }
-    return vec2(t, matID);
+    return vec2(t, mat);
 }
 
 void main() {
@@ -168,13 +181,13 @@ void main() {
     
     vec2 result = rayMarch(ray_origin, ray_dir); // t is total distance travelled
     float total_dist = result.x;
-    float matID = result.y;
+    float mat = result.y;
 
 
-    if (total_dist >= u_maxDist || matID <0.0) {
+    if (total_dist >= u_maxDist || mat <0.0) {
         gl_FragColor = vec4(u_clearColor, 1.0);
     } else {
-        vec3 col = getColor(matID);
+        vec3 col = getProceduralColor(mat);
         gl_FragColor = vec4(col, 1.0);
     }
 }     
