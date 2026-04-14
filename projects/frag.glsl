@@ -104,21 +104,31 @@ mat2 degrot2D(float angle) {
 
 // ***** ***** ***** Scene Time ***** ***** *****\\
 
-float map(vec3 pos) {
-    //copy pos to preserve pos of other objs when doing translations for box
-    vec3 q = pos;
-    q = fract(q);
-    float sphere = sdSphere(q, 1.0);
 
-    float final = sphere;
+float map(vec3 pos) {
+   //vec3 q = fract(pos) - 0.5;
+
+    float box = sdBox(pos, vec3(0.1));
+    float final = box;
     return final;       
 }
 
 vec4 color_funct(float t) {
-    vec3 col = vec3(t*0.2);
+    vec3 col = vec3(t*0.01);
     return vec4(col, 1);
 
 }
+
+vec3 calc_normal(vec3 pos) {
+    float e = 0.0001;
+    return normalize(vec3(
+        map(pos + vec3(e, 0, 0)) - map(pos - vec3(e, 0, 0)),
+        map(pos + vec3(0, e, 0)) - map(pos - vec3(0, e, 0)),
+        map(pos + vec3(0, 0, e)) - map(pos - vec3(0, 0, e))
+    ));
+}
+
+
 
 // ***** ***** *****  Ray Time  ***** ***** *****\\
 
