@@ -1,5 +1,5 @@
 
-precision mediump float;
+precision highp float;
 
 // From vertex shader
 in vec2 vUv;
@@ -73,6 +73,11 @@ float sdLink( vec3 pos, float le, float r1, float r2 ) {
     return length(vec2(length(q.xy) - r1, q.z)) - r2;
 }
 
+float sdPlane( vec3 p, vec4 n ) {
+  // n must be normalized
+  return dot(p,n.xyz) + n.w;
+}  
+
 
 // ------ Operators (float) ------
 // For composing distances only — e.g. rounding: sdBox(...) - 0.25
@@ -123,14 +128,17 @@ Surface smUnion( Surface a, Surface b, float k ) {
 }
 
 
+
 // ------ Rotation Helpers ------
 
-mat2 rot2D( float angle ) {                      // radians
+// radians
+mat2 rot2D( float angle ) {
     float s = sin(angle), c = cos(angle);
     return mat2(c, -s, s, c);
 }
 
-mat2 degrot2D( float angle ) {                   // degrees
+// degrees
+mat2 degrot2D( float angle ) {
     return rot2D(radians(angle));
 }
 
@@ -138,12 +146,31 @@ mat2 degrot2D( float angle ) {                   // degrees
 // ***** ***** ***** Scene ***** ***** *****
 
 Surface map( vec3 pos ) {
-    vec3 spherePos = vec3(0.9 * cos(u_time), sin(u_time) * 0.0625, 0.0);
+    vec3 sphereAPos = vec3(
+        -cos(u_time *0.7) - 0.3 * cos(u_time * 2.3),
+        -sin(u_time * 1.1) - 0.2 * sin(u_time * 3.1),
+        0.0
+    );
+    vec3 apos = pos;
+    apos -= sphereAPos;
+    Surface sphereA  = Surface(sdSphere(apos, 0.5) , vec3(0.2, 0.3, 1.0));
 
-    Surface box = Surface(sdBox(pos, vec3(0.5)),                vec3(1.0, 0.0, 0.0));
-    Surface sphere  = Surface(sdSphere(pos - spherePos, 0.5),   vec3(0.0, 1.0, 0.0));
+    vec3 sphereBPos = vec3(
+        cos(u_time * 1.1) + 0.3 * cos(u_time * 2.7),
+        sin(u_time * 1.0) + 0.2 * sin(u_time * 0.8),
+        0.0
+    );
+    vec3 bpos = pos;
+    bpos -= sphereBPos;
+    Surface sphereB = Surface(sdSphere(bpos, 0.4) , vec3(0.0, 1.0, 1.0));
 
-    return smUnion(box, sphere, 0.5);
+    Surface box = Surface(sdBox(pos, vec3(0.5)), vec3(1.0, 1.0, 1.0));
+
+
+    Surface final1 = smUnion(box, sphereA, 0.5);
+    Surface final2 = smUnion(final1, sphereB, 0.5);
+
+    return final2;
 }
 
 
@@ -170,7 +197,7 @@ float rayMarch( vec3 ray_origin, vec3 ray_dir ) {
 }
 
 void main() {
-    vec2 uv      = vUv.xy;
+    vec2 uv         = vUv.xy;
     vec3 ray_origin = u_camPos;
     vec3 ray_dir    = (u_camInvProjMat * vec4(uv * 2.0 - 1.0, 0.0, 1.0)).xyz;
     ray_dir         = normalize((u_camToWorldMat * vec4(ray_dir, 0.0)).xyz);

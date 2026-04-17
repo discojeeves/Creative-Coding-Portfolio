@@ -8,16 +8,16 @@
         body { background: #000; overflow: hidden; }
         canvas { display: block; }
         #back {
-          position: fixed;
-   top: 1rem;
-          left: 1rem;
-          color: #fff;
-          text-decoration: none;
-          font-family: monospace;
-          font-size: 0.85rem;
-          opacity: 0.4;
-          transition: opacity 0.2s;
-          z-index: 10;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            color: #fff;
+            text-decoration: none;
+            font-family: monospace;
+            font-size: 0.85rem;
+            opacity: 0.4;
+            transition: opacity 0.2s;
+            z-index: 10;
         }
         #back:hover { opacity: 1; }
 
@@ -40,116 +40,174 @@
     </style>
 </head>
 <body>
-  <a id="back" href="../../index.html">← back</a>
-  <button id="reset">reset [H]</button>
+    <a id="back" href="../../index.html">← back</a>
+    <button id="reset">reset [H]</button>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "/node_modules/three/build/three.module.js"
-      }
+    <script type="importmap"> {
+        "imports": {
+          "three": "/node_modules/three/build/three.module.js"
+        }
     }
-  </script>
+    </script>
 
-  <script type="module">
-    import * as three from 'three';
-    import { OrbitControls } from '/node_modules/three/examples/jsm/controls/OrbitControls.js';
+    <script type="module">
+        import * as three               from 'three';
+        import { OrbitControls }        from '/node_modules/three/examples/jsm/controls/OrbitControls.js';
+        import { PointerLockControls }  from '/node_modules/three/examples/jsm/controls/PointerLockControls.js';
+        import GUI                      from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
+        
+        //grab shaders from glsl files 
+        const [vert, frag] = await Promise.all([
+          fetch('/projects/vert.glsl').then(r => r.text()),
+          fetch('/projects/frag.glsl').then(r => r.text()),
+        ]);
 
-    const [vert, frag] = await Promise.all([
-      fetch('/projects/vert.glsl').then(r => r.text()),
-      fetch('/projects/frag.glsl').then(r => r.text()),
-    ]);
+        // Scene & Renderer setup
+        const renderer = new three.WebGLRenderer({ antialias: true });
 
-    // Scene setup
-    const renderer        = new three.WebGLRenderer({ antialias: true });
-    const scene           = new three.Scene();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-    const backgroundColor = new three.Color(0x000000);
-    renderer.setClearColor(backgroundColor, 1);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
 
-    // Light
-    const light = new three.DirectionalLight(0xffffff, 1);
-    light.position.set(1, 1, 1);
-    scene.add(light);
+        const scene = new three.Scene();
+        const backgroundColor = new three.Color(0x000000);
+        renderer.setClearColor(backgroundColor, 1);
 
-    // Camera
-    const camera = new three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 5;
+        // Light
+        const light = new three.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 1, 1);
+        scene.add(light);
 
-    // Orbit controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.maxDistance   = 10;
-    controls.minDistance   = 2;
-    controls.enableDamping = true;
+        // Camera
+        const camera = new three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
 
-    // Near plane dimensions
-    const nearPlaneWidth  = camera.near * Math.tan(three.MathUtils.degToRad(camera.fov / 2)) * camera.aspect * 2;
-    const nearPlaneHeight = nearPlaneWidth / camera.aspect;
+        // Orbit controls (default)
+        const orbit = new OrbitControls(camera, renderer.domElement);
+        orbit.enableDamping = true;
 
-    // Uniforms 
-    const uniforms = {
-        u_hitThresh:        { value: 0.00001 },
-        u_maxDist:          { value: 1000 },
-        u_maxSteps:         { value: 200 },
+        // FPS controls
+        const fp = new PointerLockControls(camera, document.body);
+        const FPS_SPEED = 5.0;
 
-        u_clearColor:       { value: backgroundColor },
-        u_resolution:       { value: new three.Vector2() },
+        // Toggle between first-person and orbit controls
+        let isFirstPerson = false;
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'c') {
+                isFirstPerson = !isFirstPerson; // toggle
+                orbit.enabled = !isFirstPerson;
+                if (isFirstPerson) fp.lock();
+                else fp.unlock();
+            }
+        });
 
-        u_camPos:           { value: camera.position },
-        u_camToWorldMat:    { value: camera.matrixWorld },
-        u_camInvProjMat:    { value: camera.projectionMatrixInverse },
+        fp.addEventListener('unlock', () => {
+            isFirstPerson = false;
+            orbit.enabled = true;
+        });
 
-        u_lightDir:         { value: light.position },
-        u_lightColor:       { value: light.color },
+        // WASD state
+        const keys = { w: false, a: false, s: false, d: false, e: false, q: false };
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW') keys.w = true;
+            if (e.code === 'KeyA') keys.a = true;
+            if (e.code === 'KeyS') keys.s = true;
+            if (e.code === 'KeyD') keys.d = true;
+            if (e.code === 'KeyE') keys.e = true;
+            if (e.code === 'KeyQ') keys.q = true;
+        });
 
-        u_diffIntensity:    { value: 0.5 },
-        u_specIntensity:    { value: 3 },
-        u_ambientIntensity: { value: 0.15 },
-        u_shininess:        { value: 16 },
-
-        u_time:             { value: 0 },
-    };
-
-    // Raymarching plane
-    const geometry = new three.PlaneGeometry();
-    const material = new three.ShaderMaterial({
-        vertexShader:   vert,
-        fragmentShader: frag,
-        uniforms:       uniforms,
-    });
-
-    const rayMarchPlane = new three.Mesh(geometry, material);
-    rayMarchPlane.position.set(0, 0, -camera.near);
-    rayMarchPlane.scale.set(nearPlaneWidth, nearPlaneHeight, 1);
-
-    // Parent plane to camera so it tracks automatically 
-    scene.add(camera);
-    camera.add(rayMarchPlane);
-
-
-    function resetCamera() {
-        controls.enableDamping = false;
-        controls.update();
-        controls.reset();
-        controls.enableDamping = true;
-        controls.enableZoom = false;
-        setTimeout(() => { controls.enableZoom = true; }, 500);
-    }
-
-    document.getElementById('reset').addEventListener('click', resetCamera);
-    window.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') resetCamera(); });
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') keys.w = false;
+            if (e.code === 'KeyA') keys.a = false;
+            if (e.code === 'KeyS') keys.s = false;
+            if (e.code === 'KeyD') keys.d = false;
+            if (e.code === 'KeyE') keys.e = false;
+            if (e.code === 'KeyQ') keys.q = false;
+        });
     
-    const startTime = performance.now();
 
-    function render() {
-        requestAnimationFrame(render);
-        controls.update();
-        uniforms.u_time.value = (performance.now() - startTime) / 1000;
-        renderer.render(scene, camera);
-    }
-    render();
 
-  </script>
+        // Uniforms 
+        const uniforms = {
+            u_hitThresh:        { value: 0.00001 },
+            u_maxDist:          { value: 1000 },
+            u_maxSteps:         { value: 200 },
+
+            u_clearColor:       { value: backgroundColor },
+            u_resolution:       { value: new three.Vector2() },
+
+            u_camPos:           { value: camera.position },
+            u_camToWorldMat:    { value: camera.matrixWorld },
+            u_camInvProjMat:    { value: camera.projectionMatrixInverse },
+
+            u_lightDir:         { value: light.position },
+            u_lightColor:       { value: light.color },
+
+            u_diffIntensity:    { value: 0.5 },
+            u_specIntensity:    { value: 3 },
+            u_ambientIntensity: { value: 0.15 },
+            u_shininess:        { value: 16 },
+
+            u_time:             { value: 0 },
+        };
+
+        // Raymarching plane
+        const geometry = new three.PlaneGeometry();
+        const material = new three.ShaderMaterial({
+            vertexShader:   vert,
+            fragmentShader: frag,
+            uniforms:       uniforms,
+        });
+
+        // Camera near plane dimensions
+        const nearPlaneWidth  = camera.near * Math.tan(three.MathUtils.degToRad(camera.fov / 2)) * camera.aspect * 2;
+        const nearPlaneHeight = nearPlaneWidth / camera.aspect;
+
+        const rayMarchPlane = new three.Mesh(geometry, material);
+        rayMarchPlane.position.set(0, 0, -camera.near);
+        rayMarchPlane.scale.set(nearPlaneWidth, nearPlaneHeight, 1);
+
+        // Parent plane to camera so it tracks automatically 
+        scene.add(camera);
+        camera.add(rayMarchPlane);
+
+        //reset camera with button and keybind
+        function resetCamera() {
+            orbit.enableDamping = false;
+            orbit.update();
+            orbit.reset();
+            orbit.enableDamping = true;
+            orbit.enableZoom = false;
+            setTimeout(() => { orbit.enableZoom = true; }, 500);
+        }
+        document.getElementById('reset').addEventListener('click', resetCamera);
+        window.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') resetCamera(); });
+        
+
+        const clock = new three.Clock();
+        const startTime = performance.now();
+
+        function render() {
+            requestAnimationFrame(render);
+            const delta = clock.getDelta();
+
+            if (isFirstPerson && fp.isLocked) {
+                if (keys.w) fp.moveForward( FPS_SPEED * delta);
+                if (keys.s) fp.moveForward(-FPS_SPEED * delta);
+                if (keys.d) fp.moveRight(  FPS_SPEED * delta);
+                if (keys.a) fp.moveRight(  -FPS_SPEED * delta);
+                if (keys.e) camera.position.y += FPS_SPEED * delta;
+                if (keys.q) camera.position.y -= FPS_SPEED * delta;
+            } else {
+                orbit.update();
+            }
+            uniforms.u_time.value = (performance.now() - startTime) / 1000;
+
+            renderer.render(scene, camera);
+        }
+        render();
+
+    </script>
 </body>
 </html>
