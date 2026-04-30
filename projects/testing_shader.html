@@ -88,7 +88,7 @@
 
         // FPS controls
         const fp = new PointerLockControls(camera, document.body);
-        const FPS_SPEED = 5.0;
+        const params = { moveSpeed: 5.0}; 
 
         // Toggle between first-person and orbit controls
         let isFirstPerson = false;
@@ -131,7 +131,7 @@
         // Uniforms 
         const uniforms = {
             u_hitThresh:        { value: 0.00001 },
-            u_maxDist:          { value: 1000 },
+            u_maxDist:          { value: 50 },
             u_maxSteps:         { value: 200 },
 
             u_clearColor:       { value: backgroundColor },
@@ -151,6 +151,51 @@
 
             u_time:             { value: 0 },
         };
+
+        // lil-gui debug panel
+        const gui = new GUI({ title: 'Controls' });
+
+        const camFolder   = gui.addFolder('Camera');
+        camFolder.add(params, 'moveSpeed', 0.5, 20, 0.5).name('FPS Speed');
+
+        const marchFolder = gui.addFolder('Raymarcher');
+        marchFolder.add(uniforms.u_maxSteps,  'value', 10,   500,  1   ).name('Max Steps');
+        marchFolder.add(uniforms.u_maxDist,   'value', 10,   2000, 10  ).name('Max Distance');
+        marchFolder.add(uniforms.u_hitThresh, 'value', 0.00001, 0.01   ).name('Hit Threshold');
+
+        const lightFolder = gui.addFolder('Lighting');
+        lightFolder.add(uniforms.u_diffIntensity,    'value', 0, 2,   0.01).name('Diffuse');
+        lightFolder.add(uniforms.u_specIntensity,    'value', 0, 10,  0.1 ).name('Specular');
+        lightFolder.add(uniforms.u_ambientIntensity, 'value', 0, 1,   0.01).name('Ambient');
+        lightFolder.add(uniforms.u_shininess,        'value', 1, 128, 1   ).name('Shininess');
+
+    
+        // Make the panel draggable by its title bar
+        const guiEl   = gui.domElement;
+        const titleEl = guiEl.querySelector('.title');
+        guiEl.style.position = 'fixed';
+        guiEl.style.top      = '0px';
+        guiEl.style.left     = (window.innerWidth - guiEl.offsetWidth - 16) + 'px';
+        guiEl.style.right    = 'auto';
+        titleEl.style.cursor = 'grab';
+
+        let dragging = false, dragOffX = 0, dragOffY = 0;
+        titleEl.addEventListener('mousedown', (e) => {
+            dragging = true;
+            const rect = guiEl.getBoundingClientRect();
+            dragOffX = e.clientX - rect.left;
+            dragOffY = e.clientY - rect.top;
+            titleEl.style.cursor = 'grabbing';
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            guiEl.style.left = (e.clientX - dragOffX) + 'px';
+            guiEl.style.top  = (e.clientY - dragOffY) + 'px';
+        });
+        document.addEventListener('mouseup', () => {
+            dragging = false;
+            titleEl.style.cursor = 'grab';
+        });
 
         // Raymarching plane
         const geometry = new three.PlaneGeometry();
@@ -193,12 +238,12 @@
             const delta = clock.getDelta();
 
             if (isFirstPerson && fp.isLocked) {
-                if (keys.w) fp.moveForward( FPS_SPEED * delta);
-                if (keys.s) fp.moveForward(-FPS_SPEED * delta);
-                if (keys.d) fp.moveRight(  FPS_SPEED * delta);
-                if (keys.a) fp.moveRight(  -FPS_SPEED * delta);
-                if (keys.e) camera.position.y += FPS_SPEED * delta;
-                if (keys.q) camera.position.y -= FPS_SPEED * delta;
+                if (keys.w) fp.moveForward( params.moveSpeed * delta);
+                if (keys.s) fp.moveForward(-params.moveSpeed * delta);
+                if (keys.d) fp.moveRight(  params.moveSpeed * delta);
+                if (keys.a) fp.moveRight(  -params.moveSpeed * delta);
+                if (keys.e) camera.position.y += params.moveSpeed * delta;
+                if (keys.q) camera.position.y -= params.moveSpeed * delta;
             } else {
                 orbit.update();
             }

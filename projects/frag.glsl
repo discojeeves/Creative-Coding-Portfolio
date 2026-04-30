@@ -164,7 +164,10 @@ Surface map( vec3 pos ) {
     bpos -= sphereBPos;
     Surface sphereB = Surface(sdSphere(bpos, 0.4) , vec3(0.0, 1.0, 1.0));
 
-    Surface box = Surface(sdBox(pos, vec3(0.5)), vec3(1.0, 1.0, 1.0));
+    vec3 cpos = fract(pos) - 0.5;
+    float constraint = sdBox(pos, vec3(10.0));
+
+    Surface box = Surface(bsInt(sdBox(cpos, vec3(0.1)), constraint), vec3(0.0, 0.0, 0.0));
 
 
     Surface final1 = smUnion(box, sphereA, 0.5);
