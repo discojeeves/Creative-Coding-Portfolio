@@ -74,7 +74,11 @@ import * as three               from 'three';
         });
     
 
-
+        const materials = [
+            {name: 'Sphere A', color: '#3350ff'},
+            {name: 'Sphere B', color: '#00ffff'},
+            {name: 'Cube', color: '#ffffffff'}
+        ];
         // Uniforms 
         const uniforms = {
             u_hitThresh:        { value: 0.00001 },
@@ -96,9 +100,17 @@ import * as three               from 'three';
             u_ambientIntensity: { value: 0.15 },
             u_shininess:        { value: 16 },
 
-
+            u_maxMaterials:     { value: 8 },
+            
             u_time:             { value: 0 },
         };
+
+        uniforms.u_matColors = {
+            value: Array.from({ length: uniforms.u_maxMaterials.value }, (_, i) =>
+                i < materials.length ? new three.Color(materials[i].color) : new three.Color(0, 0, 0)
+            )
+        };
+
 
         // lil-gui debug panel
         const gui = new GUI({ title: 'Controls' });
@@ -117,7 +129,12 @@ import * as three               from 'three';
         lightFolder.add(uniforms.u_ambientIntensity, 'value', 0, 1,   0.01).name('Ambient');
         lightFolder.add(uniforms.u_shininess,        'value', 1, 128, 1   ).name('Shininess');
 
-        
+        const matFolder = gui.addFolder('Materials');
+        materials.forEach((mat, i) => {
+            matFolder.addColor(mat, 'color')
+            .name(mat.name)
+            .onChange(hex => uniforms.u_matColors.value[i].set(hex));
+        });
 
         // Make the panel draggable by its title bar
         const guiEl   = gui.domElement;

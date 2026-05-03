@@ -5,6 +5,7 @@ precision highp float;
 in vec2 vUv;
 
 // Uniforms
+uniform vec3 u_matColors[8];
 uniform vec3 u_clearColor;
 
 uniform float u_hitThresh;
@@ -153,7 +154,7 @@ Surface map( vec3 pos ) {
     );
     vec3 apos = pos;
     apos -= sphereAPos;
-    Surface sphereA  = Surface(sdSphere(apos, 0.5) , vec3(0.2, 0.3, 1.0));
+    Surface sphereA  = Surface(sdSphere(apos, 0.5) , u_matColors[0]);
 
     vec3 sphereBPos = vec3(
         cos(u_time * 1.1) + 0.3 * cos(u_time * 2.7),
@@ -162,12 +163,12 @@ Surface map( vec3 pos ) {
     );
     vec3 bpos = pos;
     bpos -= sphereBPos;
-    Surface sphereB = Surface(sdSphere(bpos, 0.4) , vec3(0.0, 1.0, 1.0));
+    Surface sphereB = Surface(sdSphere(bpos, 0.4) , u_matColors[1]);
 
     vec3 cpos = fract(pos) - 0.5;
     float constraint = sdBox(pos, vec3(10.0));
 
-    Surface box = Surface(bsInt(sdBox(cpos, vec3(0.1)), constraint), vec3(0.0, 0.0, 0.0));
+    Surface box = Surface(bsInt(sdBox(cpos, vec3(0.1)), constraint), u_matColors[2]);
 
 
     Surface final1 = smUnion(box, sphereA, 0.5);
