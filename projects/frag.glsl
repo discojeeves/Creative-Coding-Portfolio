@@ -1,6 +1,7 @@
 
 precision highp float;
 
+#define PI 3.14159265358979
 // From vertex shader
 in vec2 vUv;
 
@@ -33,6 +34,14 @@ uniform float u_time;
 struct Surface {
     float dist;
     vec3  color;
+    float roughness;
+    bool isMetal; 
+};
+
+struct baseLight {
+    vec3 color;
+    float diffuseIntensity; 
+    float ambientIntensity; 
 };
 
 
@@ -114,7 +123,12 @@ Surface bsUnion( Surface a, Surface b ) {
 
 Surface bsSub( Surface a, Surface b ) {
     if (-a.dist > b.dist) {
-        return Surface(-a.dist, a.color);
+        Surface result;
+        result.dist = -a.dist;
+        result.color = a.color;
+        result.roughness = a.roughness;
+        result.isMetal = a.isMetal;
+        return result;
     } else {
         return b;
     }
@@ -122,10 +136,12 @@ Surface bsSub( Surface a, Surface b ) {
 
 Surface smUnion( Surface a, Surface b, float k ) {
     float h = clamp(0.5 + 0.5*(b.dist - a.dist)/k, 0.0, 1.0);
-    return Surface(
-        mix(b.dist,  a.dist,  h) - k*h*(1.0-h),
-        mix(b.color, a.color, h)
-    );
+    Surface final;
+    final.dist = mix(b.dist,  a.dist,  h) - k*h*(1.0-h);
+    final.color = mix(b.color, a.color, h);
+    final.roughness = mix(b.roughness, a.roughness, h);
+    final.isMetal = a.isMetal || b.isMetal;
+    return final;
 }
 
 
@@ -147,34 +163,56 @@ mat2 degrot2D( float angle ) {
 // ***** ***** ***** Scene ***** ***** *****
 
 Surface map( vec3 pos ) {
-    vec3 sphereAPos = vec3(
-        -cos(u_time *0.7) - 0.3 * cos(u_time * 2.3),
-        -sin(u_time * 1.1) - 0.2 * sin(u_time * 3.1),
-        0.0
-    );
-    vec3 apos = pos;
-    apos -= sphereAPos;
-    Surface sphereA  = Surface(sdSphere(apos, 0.5) , u_matColors[0]);
+    // spheres and fractal cubes 
+    // vec3 sphereAPos = vec3(
+    //     -cos(u_time *0.7) - 0.3 * cos(u_time * 2.3),
+    //     -sin(u_time * 1.1) - 0.2 * sin(u_time * 3.1),
+    //     0.0
+    // );
+    // vec3 apos = pos;
+    // apos -= sphereAPos;
+    // Surface sphereA;
+    // sphereA.dist = sdSphere(apos, 0.5);
+    // sphereA.color = u_matColors[0];
+    // sphereA.roughness = 0.5;
+    // sphereA.isMetal = false;
 
-    vec3 sphereBPos = vec3(
-        cos(u_time * 1.1) + 0.3 * cos(u_time * 2.7),
-        sin(u_time * 1.0) + 0.2 * sin(u_time * 0.8),
-        0.0
-    );
-    vec3 bpos = pos;
-    bpos -= sphereBPos;
-    Surface sphereB = Surface(sdSphere(bpos, 0.4) , u_matColors[1]);
-
-    vec3 cpos = fract(pos) - 0.5;
-    float constraint = sdBox(pos, vec3(10.0));
-
-    Surface box = Surface(bsInt(sdBox(cpos, vec3(0.1)), constraint), u_matColors[2]);
+    // vec3 sphereBPos = vec3(
+    //     cos(u_time * 1.1) + 0.3 * cos(u_time * 2.7),
+    //     sin(u_time * 1.0) + 0.2 * sin(u_time * 0.8),
+    //     0.0
+    // );
+    // vec3 bpos = pos;
+    // bpos -= sphereBPos;
 
 
-    Surface final1 = smUnion(box, sphereA, 0.5);
-    Surface final2 = smUnion(final1, sphereB, 0.5);
+    // Surface sphereB;
+    // sphereB.dist = sdSphere(bpos, 0.4);
+    // sphereB.color = u_matColors[1];
+    // sphereB.roughness = 0.5;
+    // sphereB.isMetal = false;
 
-    return final2;
+    // vec3 cpos = fract(pos) - 0.5;
+    // float constraint = sdBox(pos, vec3(10.0));
+
+    // Surface box; 
+    // box.dist = bsInt(sdBox(cpos, vec3(0.1)), constraint);
+    // box.color = u_matColors[2];
+    // box.roughness = 0.5;
+    // box.isMetal = false;
+
+
+    // Surface final1 = smUnion(box, sphereA, 0.5);
+    // Surface final2 = smUnion(final1, sphereB, 0.5);
+
+    // return final2;
+    
+    Surface cube;
+    cube.dist = sdBox(pos, vec3(0.5));
+    cube.color = u_matColors[0];
+    cube.roughness = 0.9;
+    cube.isMetal = false;
+    return cube;
 }
 
 
@@ -189,10 +227,10 @@ vec3 calcNormal( vec3 pos ) {
     ));
 }
 
-float rayMarch( vec3 ray_origin, vec3 ray_dir ) {
+float rayMarch( vec3 rayOrigin, vec3 rayDir ) {
     float t = 0.0;
     for (int i = 0; i < u_maxSteps; ++i) {
-        vec3 pos = ray_origin + ray_dir * t;
+        vec3 pos = rayOrigin + rayDir * t;
         float d  = map(pos).dist;
         if (d < u_hitThresh || t > u_maxDist) break;
         t += d;
@@ -200,19 +238,115 @@ float rayMarch( vec3 ray_origin, vec3 ray_dir ) {
     return t;
 }
 
-void main() {
-    vec2 uv         = vUv.xy;
-    vec3 ray_origin = u_camPos;
-    vec3 ray_dir    = (u_camInvProjMat * vec4(uv * 2.0 - 1.0, 0.0, 1.0)).xyz;
-    ray_dir         = normalize((u_camToWorldMat * vec4(ray_dir, 0.0)).xyz);
+// pbr 
 
-    float t = rayMarch(ray_origin, ray_dir);
+//Normal Distribution Function 
+
+float ggxDistribution(float nDotH, Surface mat){
+    float alpha2 = mat.roughness * mat.roughness * mat.roughness * mat.roughness;
+    float d = nDotH * nDotH * (alpha2 - 1.0) + 1.0;
+    float ggxDistr = alpha2 / (PI * d * d);
+    return ggxDistr; 
+}
+
+//Smith geometry 
+
+float geomSmith(float nDotV, float nDotL, Surface mat){
+
+    float k = (mat.roughness + 1.0) * (mat.roughness + 1.0) / 8.0; 
+    float gV = nDotV / ( nDotV * (1.0 - k) + k );
+    float gL = nDotL / ( nDotL * (1.0 - k) + k );
+
+    return gV * gL;
+}
+
+//schlick fresnel 
+vec3 schlickFresnel(float vDotH, Surface mat){
+    vec3 F0 = vec3(0.04);
+    if (mat.isMetal){ F0 = mat.color;}
+    vec3 fresnel = F0 + (1.0 - F0) * pow((1.0 - vDotH), 5.0);
+    return fresnel;
+}
+
+
+
+
+vec3 calcPBR(baseLight light, Surface mat, vec3 rayOrigin, vec3 hitPos, vec3 posDir, bool isDirLight){
+    
+    vec3 lightIntensity = light.color * light.diffuseIntensity;
+    vec3 l = vec3(0.0);
+
+    if (isDirLight) {
+        l = -posDir.xyz;
+    } else {
+        l = posDir - hitPos; 
+        float lightToHit = length(l);
+        l = normalize(l);
+        lightIntensity /= (lightToHit * lightToHit); 
+    }
+
+    vec3 n = normalize(calcNormal(hitPos));
+    vec3 lightDir  = normalize(u_lightDir);
+    vec3 viewDir   = normalize(rayOrigin - hitPos);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+
+    float nDotH = max(dot(n, halfwayDir), 0.0);
+    float vDotH = max(dot(viewDir, halfwayDir), 0.0);
+    float nDotL = max(dot(n, lightDir), 0.0);
+    float nDotV = max(dot(n, viewDir), 0.0);
+
+
+    vec3 F = schlickFresnel(vDotH, mat);
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS; 
+    vec3 fLambert = mat.color;
+
+    //kD + kS = 1.0; 
+    vec3 diffuse = kD * fLambert / PI; 
+
+
+    vec3 specularNominator = schlickFresnel(vDotH, mat) * ggxDistribution(nDotH, mat) * geomSmith(nDotV, nDotL, mat);
+    float specularDenominator = 4.0 * nDotL * nDotV + 0.0001;
+    vec3 specular = specularNominator / specularDenominator;
+    vec3 finalColor = (diffuse + specular) * lightIntensity * nDotL;
+    return finalColor;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
+
+void main() {
+
+    vec2 uv         = vUv.xy;
+    vec3 rayOrigin = u_camPos;
+    vec3 rayDir    = (u_camInvProjMat * vec4(uv * 2.0 - 1.0, 0.0, 1.0)).xyz;
+    rayDir         = normalize((u_camToWorldMat * vec4(rayDir, 0.0)).xyz);
+
+    float t = rayMarch(rayOrigin, rayDir);
+
+    baseLight light;
+    light.color = u_lightColor;
+    light.diffuseIntensity = u_diffIntensity;
+    light.ambientIntensity = u_ambientIntensity;
+
+
 
     if (t >= u_maxDist) {
         gl_FragColor = vec4(u_clearColor, 1.0);
     } else {
-        vec3 hitPos = ray_origin + ray_dir * t;
+        vec3 hitPos = rayOrigin + rayDir * t;
         Surface hit = map(hitPos);
-        gl_FragColor = vec4(hit.color, 1.0);
+        vec3 color = calcPBR(light , hit, rayOrigin, hitPos, u_lightDir, true);
+        gl_FragColor = vec4(color, 1.0);
     }
 }

@@ -77,7 +77,7 @@ import * as three               from 'three';
         const materials = [
             {name: 'Sphere A', color: '#3350ff'},
             {name: 'Sphere B', color: '#00ffff'},
-            {name: 'Cube', color: '#ffffffff'}
+            {name: 'Cube', color: '#ffffff'}
         ];
         // Uniforms 
         const uniforms = {
@@ -92,14 +92,13 @@ import * as three               from 'three';
             u_camToWorldMat:    { value: camera.matrixWorld },
             u_camInvProjMat:    { value: camera.projectionMatrixInverse },
 
-            u_lightDir:         { value: light.position },
-            u_lightColor:       { value: light.color },
-
             u_diffIntensity:    { value: 0.5 },
             u_specIntensity:    { value: 3 },
             u_ambientIntensity: { value: 0.15 },
             u_shininess:        { value: 16 },
 
+            u_lightColor:      { value: new three.Color(1, 1, 1) },
+            u_lightDir:        { value: new three.Vector3(0, 0, 1) },
             u_maxMaterials:     { value: 8 },
             
             u_time:             { value: 0 },
@@ -111,6 +110,12 @@ import * as three               from 'three';
             )
         };
 
+
+        const lightDir = {x: 0.5, y: 1, z: 0.5};
+
+        const syncLightDir = () => {
+            uniforms.u_lightDir.value.set(lightDir.x, lightDir.y, lightDir.z).normalize();
+        }
 
         // lil-gui debug panel
         const gui = new GUI({ title: 'Controls' });
@@ -128,6 +133,9 @@ import * as three               from 'three';
         lightFolder.add(uniforms.u_specIntensity,    'value', 0, 10,  0.1 ).name('Specular');
         lightFolder.add(uniforms.u_ambientIntensity, 'value', 0, 1,   0.01).name('Ambient');
         lightFolder.add(uniforms.u_shininess,        'value', 1, 128, 1   ).name('Shininess');
+        lightFolder.add(lightDir, 'x', -1, 1, 0.01).name('Light X').onChange(syncLightDir);
+        lightFolder.add(lightDir, 'y', -1, 1, 0.01).name('Light Y').onChange(syncLightDir);
+        lightFolder.add(lightDir, 'z', -1, 1, 0.01).name('Light Z').onChange(syncLightDir);
 
         const matFolder = gui.addFolder('Materials');
         materials.forEach((mat, i) => {
