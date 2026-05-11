@@ -22,9 +22,7 @@ uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
 
 uniform float u_diffIntensity;
-uniform float u_specIntensity;
 uniform float u_ambientIntensity;
-uniform float u_shininess;
 
 uniform float u_time;
 
@@ -36,7 +34,7 @@ struct Surface {
     float dist;
     vec3  color;
     float roughness;
-    bool isMetal; 
+    float isMetal; 
 };
 
 struct baseLight {
@@ -141,7 +139,7 @@ Surface smUnion( Surface a, Surface b, float k ) {
     final.dist = mix(b.dist,  a.dist,  h) - k*h*(1.0-h);
     final.color = mix(b.color, a.color, h);
     final.roughness = mix(b.roughness, a.roughness, h);
-    final.isMetal = a.isMetal || b.isMetal;
+    final.isMetal = mix(b.isMetal, a.isMetal, h);
     return final;
 }
 
@@ -229,17 +227,17 @@ Surface map( vec3 pos ) {
     Surface sphere1;
     sphere1.color = u_matColors[0];
     sphere1.roughness = u_matRoughness[0];
-    sphere1.isMetal = false;
+    sphere1.isMetal = 1.0;
 
     Surface sphere2;
     sphere2.color = u_matColors[1];
     sphere2.roughness = u_matRoughness[1];
-    sphere2.isMetal = false;
+    sphere2.isMetal = 0.0;
 
     Surface sphere3;
     sphere3.color = u_matColors[2];
     sphere3.roughness = u_matRoughness[2];
-    sphere3.isMetal = false;
+    sphere3.isMetal = 0.0;
 
     vec3 sphere1Pos = vec3(
         -cos(u_time *0.7) - 0.3 * cos(u_time * 2.3),
@@ -318,8 +316,7 @@ float geomSmith(float nDotV, float nDotL, Surface mat){
 
 //schlick fresnel 
 vec3 schlickFresnel(float vDotH, Surface mat){
-    vec3 F0 = vec3(0.04);
-    if (mat.isMetal){ F0 = mat.color;}
+    vec3 F0 = mix(vec3(0.04), mat.color, mat.isMetal);
     vec3 fresnel = F0 + (1.0 - F0) * pow((1.0 - vDotH), 5.0);
     return fresnel;
 }
