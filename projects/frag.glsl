@@ -271,7 +271,7 @@ Surface map( vec3 pos ) {
     ground.color = u_matColors[3];
     ground.roughness = u_matRoughness[3];
     ground.isMetal = 0.0;
-    ground.dist = sdPlane(pos, vec4(0, 1, 0, 1.8));
+    ground.dist = sdPlane(pos, vec4(0, 1, 0, 1.5));
 
 
     Surface other = ground;
@@ -305,13 +305,13 @@ float rayMarch( vec3 rayOrigin, vec3 rayDir ) {
 
 float shadowMarch(vec3 hitPos, vec3 lightDir) {
     float t = 0.001;
-    for (int i = 0; i < u_maxSteps; ++i) {
+    for (int i = 0; i < 128; ++i) {
         
         vec3 pos = hitPos + lightDir * t;
         
         float dist = map(pos).dist;
        
-        if (dist < u_hitThresh) return 0.0;
+        if (dist < 0.0001) return 0.0;
         if (t > u_maxDist) break;
         t += dist;
     }
@@ -401,35 +401,7 @@ vec3 calcPBR(baseLight light, Surface mat, vec3 rayOrigin, vec3 hitPos, vec3 pos
 
 
 
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
 
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
-
-//HEY BUDDY TALK TO MR. BROOKS ABOUT HOW I MAY NEED TO PIVOT REGARDING THIS PROJECT 
 
 void main() {
 
