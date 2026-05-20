@@ -227,7 +227,7 @@ Surface map( vec3 pos ) {
     Surface sphere1;
     sphere1.color = u_matColors[0];
     sphere1.roughness = u_matRoughness[0];
-    sphere1.isMetal = 1.0;
+    sphere1.isMetal = 0.0;
 
     Surface sphere2;
     sphere2.color = u_matColors[1];
@@ -281,16 +281,7 @@ Surface map( vec3 pos ) {
 
 
 
-// ***** ***** ***** Lighting & Marching ***** ***** *****
-
-vec3 calcNormal( vec3 pos ) {
-    float e = 0.0001;
-    return normalize(vec3(
-        map(pos + vec3(e, 0, 0)).dist - map(pos - vec3(e, 0, 0)).dist,
-        map(pos + vec3(0, e, 0)).dist - map(pos - vec3(0, e, 0)).dist,
-        map(pos + vec3(0, 0, e)).dist - map(pos - vec3(0, 0, e)).dist
-    ));
-}
+// ***** ***** ***** Marching ***** ***** *****
 
 float rayMarch( vec3 rayOrigin, vec3 rayDir ) {
     float t = 0.0;
@@ -312,7 +303,7 @@ float shadowMarch(vec3 hitPos, vec3 lightDir) {
         float dist = map(pos).dist;
        
         if (dist < 0.0001) return 0.0;
-        if (t > u_maxDist) break;
+        if (t > 10.0) break;
         t += dist;
     }
     return 1.0;
@@ -320,7 +311,18 @@ float shadowMarch(vec3 hitPos, vec3 lightDir) {
 
 
 
-// pbr 
+// ***** ***** ***** PBR etc ***** ***** *****
+
+//normal calculations
+vec3 calcNormal( vec3 pos ) {
+    float e = 0.0001;
+    return normalize(vec3(
+        map(pos + vec3(e, 0, 0)).dist - map(pos - vec3(e, 0, 0)).dist,
+        map(pos + vec3(0, e, 0)).dist - map(pos - vec3(0, e, 0)).dist,
+        map(pos + vec3(0, 0, e)).dist - map(pos - vec3(0, 0, e)).dist
+    ));
+}
+
 
 //Normal Distribution Function 
 float ggxDistribution(float nDotH, Surface mat){
@@ -329,6 +331,7 @@ float ggxDistribution(float nDotH, Surface mat){
     float ggxDistr = alpha2 / (PI * d * d);
     return ggxDistr; 
 }
+
 
 //Smith geometry 
 float geomSmith(float nDotV, float nDotL, Surface mat){
@@ -340,6 +343,7 @@ float geomSmith(float nDotV, float nDotL, Surface mat){
     return gV * gL;
 }
 
+
 //schlick fresnel 
 vec3 schlickFresnel(float vDotH, Surface mat){
     vec3 F0 = mix(vec3(0.04), mat.color, mat.isMetal);
@@ -349,6 +353,7 @@ vec3 schlickFresnel(float vDotH, Surface mat){
 
 
 
+//PBR Main 
 vec3 calcPBR(baseLight light, Surface mat, vec3 rayOrigin, vec3 hitPos, vec3 posDir, bool isDirLight){
     
     vec3 lightIntensity = light.color * light.diffuseIntensity;
@@ -383,7 +388,7 @@ vec3 calcPBR(baseLight light, Surface mat, vec3 rayOrigin, vec3 hitPos, vec3 pos
     vec3 diffuse = kD * fLambert / PI; 
 
 
-    vec3 specularNominator = schlickFresnel(vDotH, mat) * ggxDistribution(nDotH, mat) * geomSmith(nDotV, nDotL, mat);
+    vec3 specularNominator = F * ggxDistribution(nDotH, mat) * geomSmith(nDotV, nDotL, mat);
     float specularDenominator = 4.0 * nDotL * nDotV + 0.0001;
     vec3 specular = specularNominator / specularDenominator;
     vec3 ambient = light.color * light.ambientIntensity * mat.color;
@@ -393,12 +398,6 @@ vec3 calcPBR(baseLight light, Surface mat, vec3 rayOrigin, vec3 hitPos, vec3 pos
     vec3 finalColor = ambient + (diffuse + specular) * lightIntensity * nDotL * shadow;
     return finalColor;
 }
-
-
-
-
-
-
 
 
 
@@ -418,7 +417,6 @@ void main() {
     light.ambientIntensity = u_ambientIntensity;
 
 
-
     if (t >= u_maxDist) {
         gl_FragColor = vec4(u_clearColor, 1.0);
     } else {
@@ -426,5 +424,6 @@ void main() {
         Surface hit = map(hitPos);
         vec3 color = calcPBR(light , hit, rayOrigin, hitPos, u_lightDir, true);
         gl_FragColor = vec4(color, 1.0);
+       
     }
 }

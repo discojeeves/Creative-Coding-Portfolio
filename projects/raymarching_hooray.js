@@ -2,11 +2,8 @@ import * as three               from 'three';
         import { OrbitControls }        from '/node_modules/three/examples/jsm/controls/OrbitControls.js';
         import { PointerLockControls }  from '/node_modules/three/examples/jsm/controls/PointerLockControls.js';
         import GUI                      from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
-        import Stats                    from '/node_modules/three/examples/jsm/libs/stats.module.js';
 
-        const stats = new Stats();
-        document.body.appendChild(stats.dom);
-
+ 
         //grab shaders from glsl files 
         const [vert, frag] = await Promise.all([
           fetch('/projects/vert.glsl').then(r => r.text()),
@@ -18,6 +15,7 @@ import * as three               from 'three';
 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        //renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1)); //alleged fix
         document.body.appendChild(renderer.domElement);
 
         const scene = new three.Scene();
@@ -82,12 +80,12 @@ import * as three               from 'three';
             {name: 'Mat A', color: 'rgb(255, 0, 0)', roughness: 0.5},
             {name: 'Mat B', color: 'rgb(0, 255, 0)', roughness: 0.5},
             {name: 'Mat C', color: 'rgb(0, 0, 255)', roughness: 0.5},
-            {name: 'Mat D', color: 'rgba(211, 211, 211, 1)', roughness: 0.5},
+            {name: 'Mat D', color: 'rgba(210, 210, 210, 1)', roughness: 0.5},
             {name: 'Mat E', color: 'rgb(255, 0, 255)', roughness: 0.5}
         ];
         // Uniforms 
         const uniforms = {
-            u_hitThresh:        { value: 0.00001 },
+            u_hitThresh:        { value: 0.001 },
             u_maxDist:          { value: 50 },
             u_maxSteps:         { value: 200 },
 
@@ -120,8 +118,8 @@ import * as three               from 'three';
             )
         };
 
-        const lightDir = {x: 0.5, y: 0.65, z: 0.85};
 
+        const lightDir = {x: 0.5, y: 0.65, z: 0.85};
         const syncLightDir = () => {
             uniforms.u_lightDir.value.set(lightDir.x, lightDir.y, lightDir.z).normalize();
         }
@@ -155,7 +153,7 @@ import * as three               from 'three';
         const titleEl = guiEl.querySelector('.title');
         guiEl.style.position = 'fixed';
         guiEl.style.top      = (window.innerHeight / 2.0 - guiEl.offsetHeight / 2) + "px"; 
-        guiEl.style.left     =  (window.innerWidth - guiEl.offsetWidth - 16) + 'px'; 
+        guiEl.style.left     = (window.innerWidth - guiEl.offsetWidth - 16) + 'px'; 
         guiEl.style.right    = 'auto';
         titleEl.style.cursor = 'grab';
 
@@ -176,6 +174,8 @@ import * as three               from 'three';
             dragging = false;
             titleEl.style.cursor = 'grab';
         });
+
+
 
         // Raymarching plane
         const geometry = new three.PlaneGeometry();
@@ -214,7 +214,6 @@ import * as three               from 'three';
         const startTime = performance.now();
 
         function render() {
-            stats.begin();
             requestAnimationFrame(render);
             const delta = clock.getDelta();
 
@@ -230,7 +229,7 @@ import * as three               from 'three';
             }
             uniforms.u_time.value = (performance.now() - startTime) / 1000;
 
-            stats.end();
             renderer.render(scene, camera);
         }
+
         render();
